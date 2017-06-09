@@ -18,6 +18,10 @@
 #include "DataFormats/MuonReco/interface/Muon.h"
 #include "DataFormats/MuonReco/interface/MuonFwd.h"
 #include "DataFormats/MuonReco/interface/MuonSelectors.h"
+#include "DataFormats/EgammaCandidates/interface/ElectronFwd.h"
+#include "DataFormats/EgammaReco/interface/SuperClusterFwd.h"
+#include "DataFormats/EgammaCandidates/interface/GsfElectronFwd.h"
+#include "DataFormats/EgammaCandidates/interface/GsfElectron.h"
 
 #include "DQMServices/Core/interface/DQMEDAnalyzer.h"
 #include "DQMServices/Core/interface/DQMStore.h"
@@ -26,6 +30,7 @@
 #include "DQMOffline/LumiZCounting/interface/MiniBaconDefs.h"
 #include "DQMOffline/LumiZCounting/interface/TTrigger.h"
 #include "DQMOffline/LumiZCounting/interface/TriggerTools.h"
+#include "DQMOffline/LumiZCounting/interface/ElectronIdentifier.h"
 
 class TFile;
 class TH1D;
@@ -38,14 +43,14 @@ namespace edm {
 namespace baconhep {
   class TTrigger;
 }
- 
+
 class ZCounting: public DQMEDAnalyzer{
 
 public:
 
   ZCounting(const edm::ParameterSet& ps);
   virtual ~ZCounting();
-  
+
 protected:
 
   void dqmBeginRun(edm::Run const &, edm::EventSetup const &) override;
@@ -55,11 +60,19 @@ protected:
   void endLuminosityBlock(edm::LuminosityBlock const& lumi, edm::EventSetup const& eSetup) override;
 
 private:
+  void analyze_electrons(edm::Event const& e, edm::EventSetup const& eSetup);
   //other functions
+
   bool isMuonTrigger(baconhep::TTrigger triggerMenu, TriggerBits hltBits);
   bool isMuonTriggerObj(baconhep::TTrigger triggerMenu, TriggerObjects hltMatchBits);
+
+  bool isElectronTrigger(baconhep::TTrigger triggerMenu, TriggerBits hltBits);
+  bool isElectronTriggerObj(baconhep::TTrigger triggerMenu, TriggerObjects hltMatchBits);
+
   bool passMuonID(const reco::Muon& muon, const reco::Vertex& vtx, const std::string idType);
   bool passMuonIso(const reco::Muon& muon, const std::string isoType, const float isoCut);
+
+  bool passElectronID(const reco::GsfElectron& electron, const reco::Vertex& vtx, const std::string idType);
 
   // specify trigger paths of interest
   void setTriggers();
@@ -81,6 +94,25 @@ private:
   std::string fTrackName;
   edm::EDGetTokenT<reco::TrackCollection> fTrackName_token;
 
+  // Electrons
+  std::string fElectronName;
+  edm::EDGetTokenT<edm::View<reco::GsfElectron>> fGsfElectronName_token;
+  std::string fSCName;
+  edm::EDGetTokenT<edm::View<reco::SuperCluster>> fSCName_token;
+
+
+
+  edm::InputTag fRhoTag;
+  edm::EDGetTokenT<double> fRhoToken;
+
+  edm::InputTag fBeamspotTag;
+  edm::EDGetTokenT<reco::BeamSpot> fBeamspotToken;
+
+  edm::InputTag fConversionTag;
+  edm::EDGetTokenT<reco::ConversionCollection> fConversionToken;
+
+
+  edm::EDGetTokenT<edm::ValueMap<bool> > eleIdMapToken_;
   // bacon fillers
   baconhep::TTrigger        *fTrigger;
 
@@ -88,6 +120,8 @@ private:
   std::string IsoType_;
   double IsoCut_;
 
+  ElectronIdentifier EleID_;
+  //~ GsfEleMissingHitsCut GsfCutMissingHits;
   double PtCutL1_;
   double PtCutL2_;
   double EtaCutL1_;
@@ -113,6 +147,7 @@ private:
   const Double_t MUON_MASS  = 0.105658369;
   const Double_t MUON_BOUND = 0.9;
 
+  const Double_t ELECTRON_MASS  = 0.000511;
   // Histograms
   MonitorElement* h_mass_HLT_pass_central;
   MonitorElement* h_mass_HLT_pass_forward;

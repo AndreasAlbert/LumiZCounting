@@ -8,6 +8,11 @@
 #include "DataFormats/MuonReco/interface/Muon.h"
 #include "DataFormats/MuonReco/interface/MuonSelectors.h"
 
+#include "DataFormats/EgammaCandidates/interface/Electron.h"
+#include "DataFormats/EgammaCandidates/interface/GsfElectron.h"
+#include "DataFormats/EgammaReco/interface/SuperCluster.h"
+#include "RecoEgamma/ElectronIdentification/plugins/cuts/GsfEleMissingHitsCut.cc"
+
 #include "DQMOffline/LumiZCounting/interface/MiniBaconDefs.h"
 #include "DQMOffline/LumiZCounting/interface/TTrigger.h"
 #include "DQMOffline/LumiZCounting/interface/TriggerTools.h"
@@ -30,10 +35,17 @@ ZCounting::ZCounting(const edm::ParameterSet& iConfig):
   fPVName            (iConfig.getUntrackedParameter<std::string>("edmPVName","offlinePrimaryVertices")),
   fMuonName          (iConfig.getUntrackedParameter<std::string>("edmName","muons")),
   fTrackName         (iConfig.getUntrackedParameter<std::string>("edmTrackName","generalTracks")),
-  fTrigger           (0)
+
+  fElectronName      (iConfig.getUntrackedParameter<std::string>("edmGsfEleName","generalTracks")),
+  fSCName            (iConfig.getUntrackedParameter<std::string>("edmSCName","generalTracks")),
+  fRhoTag            (iConfig.getParameter<edm::InputTag>("rhoname")),
+  fBeamspotTag       (iConfig.getParameter<edm::InputTag>("beamspotName")),
+  fConversionTag     (iConfig.getParameter<edm::InputTag>("conversionsName")),
+  fTrigger           (0),
+  EleID_( ElectronIdentifier(iConfig))
 {
   edm::LogInfo("ZCounting") <<  "Constructor  ZCounting::ZCounting " << std::endl;
-  
+
   //Get parameters from configuration file
   fHLTTag_token    = consumes<edm::TriggerResults>(fHLTTag);
   fHLTObjTag_token = consumes<trigger::TriggerEvent>(fHLTObjTag);
@@ -41,6 +53,14 @@ ZCounting::ZCounting(const edm::ParameterSet& iConfig):
   fMuonName_token  = consumes<reco::MuonCollection>(fMuonName);
   fTrackName_token = consumes<reco::TrackCollection>(fTrackName);
 
+  //~ fGsfElectronName_token = consumes<reco::GsfElectronCollection>(fElectronName);
+  fGsfElectronName_token = consumes<edm::View<reco::GsfElectron>>(fElectronName);
+  fSCName_token = consumes<edm::View<reco::SuperCluster>>(fSCName);
+  //~ eleIdMapToken_= consumes<edm::ValueMap<bool> >(iConfig.getParameter<edm::InputTag>("eleIdMap"));
+  fRhoToken = consumes<double>(fRhoTag);
+
+  fBeamspotToken = consumes<reco::BeamSpot>(fBeamspotTag);
+  fConversionToken = consumes<reco::ConversionCollection>(fConversionTag);
   //Cuts
   IDType_   = iConfig.getUntrackedParameter<std::string>("IDType");
   IsoType_  = iConfig.getUntrackedParameter<std::string>("IsoType");
@@ -67,6 +87,9 @@ ZCounting::ZCounting(const edm::ParameterSet& iConfig):
   VtxNdofCut_       = iConfig.getUntrackedParameter<double>("VtxNdofMin");
   VtxAbsZCut_       = iConfig.getUntrackedParameter<double>("VtxAbsZMax");
   VtxRhoCut_        = iConfig.getUntrackedParameter<double>("VtxRhoMax");
+
+
+  //~ GsfCutMissingHits = GsfEleMissingHitsCut(iConfig);
 }
 
 //
@@ -149,6 +172,12 @@ void ZCounting::beginLuminosityBlock(edm::LuminosityBlock const& lumiSeg, edm::E
 void ZCounting::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 {// Fill event tree on the fly 
   edm::LogInfo("ZCounting") <<  "ZCounting::analyze" << std::endl;
+  //~ std::cout << "analyze begin." << std::endl;
+  bool do_electrons = true;
+  if(do_electrons) {
+    analyze_electrons(iEvent,iSetup);
+    return;
+  }
 
   //-------------------------------
   //--- Vertex 
@@ -394,6 +423,183 @@ void ZCounting::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   }//End of tag loop
 
 }
+void ZCounting::analyze_electrons(const edm::Event& iEvent, const edm::EventSetup& iSetup)
+{// Fill event tree on the fly
+  edm::LogInfo("ZCounting") <<  "ZCounting::analyze_electrons" << std::endl;
+  //-------------------------------
+  //--- Vertex
+  //-------------------------------
+  edm::Handle<reco::VertexCollection> hVertexProduct;
+  iEvent.getByToken(fPVName_token,hVertexProduct);
+  if(!hVertexProduct.isValid()) return;
+
+  const reco::VertexCollection *pvCol = hVertexProduct.product();
+  //~ const reco::Vertex* pv = &(*pvCol->begin());
+  int nvtx = 0;
+
+  for(reco::VertexCollection::const_iterator itVtx = pvCol->begin(); itVtx!=pvCol->end(); ++itVtx) {
+    if(itVtx->isFake())                             continue;
+    if(itVtx->tracksSize()     < VtxNTracksFitCut_) continue;
+    if(itVtx->ndof()           < VtxNdofCut_)       continue;
+    if(fabs(itVtx->z())        > VtxAbsZCut_)       continue;
+    if(itVtx->position().Rho() > VtxRhoCut_)        continue;
+
+    //~ if(nvtx==0) {
+      //~ pv = &(*itVtx);
+    //~ }
+    nvtx++;
+  }
+
+  h_npv->Fill(iEvent.luminosityBlock(), nvtx);
+
+  // Good vertex requirement
+  if(nvtx==0) return;
+
+  //-------------------------------
+  //--- Trigger
+  //-------------------------------
+  edm::Handle<edm::TriggerResults> hTrgRes;
+  iEvent.getByToken(fHLTTag_token,hTrgRes);
+  if(!hTrgRes.isValid()) return;
+
+  edm::Handle<trigger::TriggerEvent> hTrgEvt;
+  iEvent.getByToken(fHLTObjTag_token,hTrgEvt);
+
+  const edm::TriggerNames &triggerNames = iEvent.triggerNames(*hTrgRes);
+  Bool_t config_changed = false;
+  if(fTriggerNamesID != triggerNames.parameterSetID()) {
+    fTriggerNamesID = triggerNames.parameterSetID();
+    config_changed  = true;
+  }
+  if(config_changed) {
+    initHLT(*hTrgRes, triggerNames);
+  }
+
+
+  TriggerBits triggerBits;
+  for(unsigned int irec=0; irec<fTrigger->fRecords.size(); irec++) {
+    if(fTrigger->fRecords[irec].hltPathIndex == (unsigned int)-1) continue;
+    if(hTrgRes->accept(fTrigger->fRecords[irec].hltPathIndex)) {
+      triggerBits [fTrigger->fRecords[irec].baconTrigBit] = 1;
+    }
+  }
+  //if(fSkipOnHLTFail && triggerBits == 0) return;
+  //~ std::cout << "Before trigger." << std::endl;
+  // Trigger requirement
+  if(!isElectronTrigger(*fTrigger, triggerBits)) return;
+
+
+  // Get Electrons
+  edm::Handle<edm::View<reco::GsfElectron> > electrons;
+  iEvent.getByToken(fGsfElectronName_token, electrons);
+
+  // Get SuperClusters
+  edm::Handle<edm::View<reco::SuperCluster> > superclusters;
+  iEvent.getByToken(fSCName_token, superclusters);
+
+  // Get Rho
+  edm::Handle<double> rhoHandle;
+  iEvent.getByToken(fRhoToken, rhoHandle);
+  EleID_.setRho(*rhoHandle);
+
+  // Get beamspot
+  edm::Handle<reco::BeamSpot> beamspotHandle;
+  iEvent.getByToken(fBeamspotToken, beamspotHandle);
+  EleID_.setBeamspot(beamspotHandle);
+
+  // Conversions
+  edm::Handle<reco::ConversionCollection> conversionsHandle;
+  iEvent.getByToken(fConversionToken, conversionsHandle);
+  EleID_.setConversions(conversionsHandle);
+
+
+
+  TLorentzVector vTag(0.,0.,0.,0.);
+  //~ TLorentzVector vProbeSC(0.,0.,0.,0.);
+  //~ TLorentzVector vProbeEle(0.,0.,0.,0.);
+  TLorentzVector vProbe(0.,0.,0.,0.);
+  TLorentzVector vDilep(0.,0.,0.,0.);
+  UInt_t icat = 0;
+  edm::Ptr<reco::GsfElectron> eleProbe;
+  int n_good = 0;
+  int n_before_trigger = 0;
+  enum { eEleEle2HLT=1, eEleEle1HLT1L1, eEleEle1HLT, eEleEleNoSel, eEleSC };  // event category enum
+
+  // Loop over Tags
+  for (size_t itag = 0; itag < electrons->size(); ++itag){
+    const auto el1 = electrons->ptrAt(itag);
+    if( not EleID_.passID(el1) ) continue;
+
+    float pt1  = el1->pt();
+    float eta1 = el1->eta();
+    float phi1 = el1->phi();
+    //~ float q1   = el1->charge();
+
+    // Tag selection: kinematic cuts, lepton selection and trigger matching
+    //~ if(pt1        < PtCutL1_)  continue;
+    //~ if(fabs(eta1) > EtaCutL1_) continue;
+
+
+    n_before_trigger++;
+    if(!isElectronTriggerObj(*fTrigger, TriggerTools::matchHLT(eta1, phi1, fTrigger->fRecords, *hTrgEvt))) continue;
+    n_good++;
+    vTag.SetPtEtaPhiM(pt1, eta1, phi1, ELECTRON_MASS);
+
+    // Loop over probes
+    for (size_t iprobe = 0; iprobe < superclusters->size(); ++iprobe){
+      // Initialize probe
+      const auto sc = superclusters->ptrAt(iprobe);
+      if(*sc == *(el1->superCluster())) {
+        continue;
+      }
+
+      // Find matching electron
+      for (size_t iele = 0; iele < electrons->size(); ++iele){
+        if(iele == itag) continue;
+        const auto ele = electrons->ptrAt(itag);
+        if(*sc == *(ele->superCluster())) {
+          eleProbe = ele;
+          break;
+        }
+      }
+
+      // Assign final probe 4-vector
+      if(eleProbe.isNonnull()){
+        //TODO: SELECTION
+        vProbe.SetPtEtaPhiM( eleProbe->pt(), eleProbe->eta(), eleProbe->phi(), ELECTRON_MASS);
+      } else {
+        double pt = sc->energy() * TMath::Sqrt( 1 - pow(TMath::TanH(sc->eta()),2) );
+        vProbe.SetPtEtaPhiM( pt, sc->eta(), sc->phi(), ELECTRON_MASS);
+      }
+
+      // Require good Z
+      vDilep = vTag + vProbe;
+      float MASS_LOW = 100;
+      float MASS_HIGH = 80;
+      if((vDilep.M()<MASS_LOW) || (vDilep.M()>MASS_HIGH)) continue;
+      if(eleProbe.isNonnull() and (eleProbe->charge() != - el1->charge())) continue;
+
+      // determine event category
+      if(eleProbe.isNonnull()) {
+        if(EleID_.passID(eleProbe)) {
+          if(isElectronTriggerObj(*fTrigger, TriggerTools::matchHLT(vProbe.Eta(), vProbe.Phi(), fTrigger->fRecords, *hTrgEvt))) {
+            icat=eEleEle2HLT;
+          }
+          else {
+            icat=eEleEle1HLT;
+          }
+        }
+        else {
+          icat=eEleEleNoSel;
+        }
+      }
+      else {
+        icat=eEleSC;
+      }
+    } // End of probe loop
+  }//End of tag loop
+  std::cout << "Found " << n_before_trigger<< "/" <<n_good << " good electrons. Category " << icat << std::endl;
+}
 
 //
 // -------------------------------------- endLuminosityBlock --------------------------------------------
@@ -444,11 +650,23 @@ bool ZCounting::isMuonTrigger(baconhep::TTrigger triggerMenu, TriggerBits hltBit
 {
   return triggerMenu.pass("HLT_IsoMu24_v*",hltBits);
 }
+bool ZCounting::isElectronTrigger(baconhep::TTrigger triggerMenu, TriggerBits hltBits)
+{
+  //~ for(auto const & record : triggerMenu.fRecords) {
+    //~ std::cout << record.hltPattern<< " " << triggerMenu.pass(record.hltPattern,hltBits) << std::endl;
+  //~ }
+  return triggerMenu.pass("HLT_Ele27_WPTight_Gsf_v*",hltBits);
+}
 
 //--------------------------------------------------------------------------------------------------
 bool ZCounting::isMuonTriggerObj(baconhep::TTrigger triggerMenu, TriggerObjects hltMatchBits)
 {
   return triggerMenu.passObj("HLT_IsoMu24_v*","hltL3crIsoL1sMu22L1f0L2f10QL3f24QL3trkIsoFiltered0p09",hltMatchBits);
+}
+//--------------------------------------------------------------------------------------------------
+bool ZCounting::isElectronTriggerObj(baconhep::TTrigger triggerMenu, TriggerObjects hltMatchBits)
+{
+  return triggerMenu.passObj("HLT_Ele27_WPTight_Gsf_v*","hltEle27WPTightGsfTrackIsoFilter",hltMatchBits);
 }
 //--------------------------------------------------------------------------------------------------
 bool ZCounting::passMuonID(const reco::Muon& muon, const reco::Vertex& vtx, const std::string idType)
@@ -458,6 +676,11 @@ bool ZCounting::passMuonID(const reco::Muon& muon, const reco::Vertex& vtx, cons
   else if(idType == "Medium" && muon::isMediumMuon(muon))     return true;
   else if(idType == "Tight"  && muon::isTightMuon(muon, vtx)) return true;
   else                                                        return false;
+}
+//--------------------------------------------------------------------------------------------------
+bool ZCounting::passElectronID(const reco::GsfElectron& electron, const reco::Vertex& vtx, const std::string idType)
+{//Muon ID selection, using internal function "DataFormats/MuonReco/src/MuonSelectors.cc
+  return true;
 }
 //--------------------------------------------------------------------------------------------------
 bool ZCounting::passMuonIso(const reco::Muon& muon, const std::string isoType, const float isoCut)

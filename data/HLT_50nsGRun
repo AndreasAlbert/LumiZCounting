@@ -5,6 +5,11 @@ HLT_Ele22_WP75_Gsf_v*                   hltL1sL1SingleEG20                      
 HLT_Ele22_WP75_Gsf_v*                   hltEle22WP75GsfTrackIsoFilter                            2
 HLT_Ele23_WP75_Gsf_v*                   hltL1sL1SingleEG20                                       1
 HLT_Ele23_WP75_Gsf_v*                   hltEle23WP75GsfTrackIsoFilter                            2
+
+
+HLT_Ele27_WPTight_Gsf_v*                hltL1sSingleEGor                                         1
+HLT_Ele27_WPTight_Gsf_v*                hltEle27WPTightGsfTrackIsoFilter                         2
+
 // single muon
 HLT_IsoMu20_v*                          hltL1sL1SingleMu18                                       1
 HLT_IsoMu20_v*                          hltL3crIsoL1sMu18L1f0L2f10QL3f20QL3trkIsoFiltered0p09    2
