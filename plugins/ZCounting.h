@@ -166,6 +166,14 @@ private:
 
   MonitorElement* h_npv;
   MonitorElement* h_yield_Z;
+
+  MonitorElement* h_mass_id_pass;
+  MonitorElement* h_mass_id_fail;
+                                 ;
+  MonitorElement* h_mass_HLT_pass;
+  MonitorElement* h_mass_HLT_fail;
+
+  MonitorElement* h_yield_Zee;
 };
 
 
