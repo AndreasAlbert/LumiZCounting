@@ -594,7 +594,7 @@ void ZCounting::analyze_electrons(const edm::Event& iEvent, const edm::EventSetu
       }
 
       double probe_pt = vProbe.Pt();
-      double probe_abseta = fabs(vProbe.Eta());
+      double probe_abseta = fabs(sc->eta());
       if(probe_pt < ELE_PT_CUT_PROBE)  continue;
       if(probe_abseta > ELE_ETA_CUT_PROBE) continue;
       if( ( probe_abseta > ELE_ETA_CRACK_LOW ) and ( probe_abseta < ELE_ETA_CRACK_HIGH ) ) continue;

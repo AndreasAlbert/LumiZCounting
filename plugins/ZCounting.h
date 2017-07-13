@@ -150,13 +150,13 @@ private:
 
   const Double_t ELECTRON_MASS  = 0.000511;
 
-  const Double_t ELE_PT_CUT_TAG = 20;
+  const Double_t ELE_PT_CUT_TAG = 30;
   const Double_t ELE_PT_CUT_PROBE = 20;
-  const Double_t ELE_ETA_CUT_TAG = 2.4;
-  const Double_t ELE_ETA_CUT_PROBE = 2.4;
+  const Double_t ELE_ETA_CUT_TAG = 2.5;
+  const Double_t ELE_ETA_CUT_PROBE = 2.5;
 
-  const Double_t ELE_ETA_CRACK_LOW = 2.4;
-  const Double_t ELE_ETA_CRACK_HIGH = 2.4;
+  const Double_t ELE_ETA_CRACK_LOW = 1.4442;
+  const Double_t ELE_ETA_CRACK_HIGH = 1.56;
     
   
   // Histograms
