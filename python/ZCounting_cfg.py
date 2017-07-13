@@ -52,6 +52,7 @@ process.source = cms.Source("PoolSource",
 #'/store/data/Run2016H/SingleMuon/RECO/PromptReco-v2/000/281/693/00000/022DEC66-1986-E611-AD21-02163E012464.root',
 #'/store/data/Run2016H/SingleMuon/RECO/PromptReco-v2/000/281/693/00000/02532811-1786-E611-AFEB-02163E011AA8.root',
 '/store/data/Run2016H/SingleMuon/RECO/PromptReco-v2/000/281/727/00000/000744C8-D286-E611-BBEE-02163E012677.root'
+
                                 )
                                 )
 process.source.inputCommands = cms.untracked.vstring("keep *",
@@ -67,10 +68,10 @@ process.zcounting = cms.EDAnalyzer('ZCounting',
                                  TriggerFile     = cms.untracked.string(hlt_filename),
                                  TriggerEvent    = cms.InputTag('hltTriggerSummaryAOD','','HLT'),
                                  TriggerResults  = cms.InputTag('TriggerResults','','HLT'),
-				 edmPVName       = cms.untracked.string('offlinePrimaryVertices'),
+                                 edmPVName       = cms.untracked.string('offlinePrimaryVertices'),
                                  edmName       = cms.untracked.string('muons'),
                                  edmTrackName = cms.untracked.string('generalTracks'),
-
+                                 eleIdMap = cms.InputTag("egmGsfElectronIDs:cutBasedElectronHLTPreselection-Summer16-V1"),
                                  IDType   = cms.untracked.string("Medium"),# Tight, Medium, Loose
                                  IsoType  = cms.untracked.string("NULL"),  # Tracker-based, PF-based
                                  IsoCut   = cms.untracked.double(0.),     # {0.05, 0.10} for Tracker-based, {0.15, 0.25} for PF-based
