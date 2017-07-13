@@ -88,6 +88,7 @@ ZCounting::ZCounting(const edm::ParameterSet& iConfig):
   VtxAbsZCut_       = iConfig.getUntrackedParameter<double>("VtxAbsZMax");
   VtxRhoCut_        = iConfig.getUntrackedParameter<double>("VtxRhoMax");
 
+  IsData_ = iConfig.getUntrackedParameter<bool>("IsData");
 
   //~ GsfCutMissingHits = GsfEleMissingHitsCut(iConfig);
 }
@@ -155,18 +156,21 @@ void ZCounting::bookHistograms(DQMStore::IBooker & ibooker_, edm::Run const &, e
   h_npv                   = ibooker_.book2D("h_npv",     "h_npv",     LumiBin_, LumiMin_, LumiMax_, PVBin_, PVMin_, PVMax_);
   h_yield_Z               = ibooker_.book1D("h_yield_Z", "h_yield_Z", LumiBin_, LumiMin_, LumiMax_);
 
-  h_mass_id_pass = ibooker_.book2D("h_mass_id_pass", "h_mass_id_pass", LumiBin_, LumiMin_, LumiMax_, MassBin_, MassMin_, MassMax_);
-  h_mass_id_fail = ibooker_.book2D("h_mass_id_fail", "h_mass_id_fail", LumiBin_, LumiMin_, LumiMax_, MassBin_, MassMin_, MassMax_);
+  h_ee_mass_id_pass = ibooker_.book2D("h_ee_mass_id_pass", "h_ee_mass_id_pass", LumiBin_, LumiMin_, LumiMax_, MassBin_, MassMin_, MassMax_);
+  h_ee_mass_id_fail = ibooker_.book2D("h_ee_mass_id_fail", "h_ee_mass_id_fail", LumiBin_, LumiMin_, LumiMax_, MassBin_, MassMin_, MassMax_);
 
-  h_mass_HLT_pass = ibooker_.book2D("h_mass_HLT_pass", "h_mass_HLT_pass", LumiBin_, LumiMin_, LumiMax_, MassBin_, MassMin_, MassMax_);
-  h_mass_HLT_fail = ibooker_.book2D("h_mass_HLT_fail", "h_mass_HLT_fail", LumiBin_, LumiMin_, LumiMax_, MassBin_, MassMin_, MassMax_);
+  h_ee_mass_HLT_pass = ibooker_.book2D("h_ee_mass_HLT_pass", "h_ee_mass_HLT_pass", LumiBin_, LumiMin_, LumiMax_, MassBin_, MassMin_, MassMax_);
+  h_ee_mass_HLT_fail = ibooker_.book2D("h_ee_mass_HLT_fail", "h_ee_mass_HLT_fail", LumiBin_, LumiMin_, LumiMax_, MassBin_, MassMin_, MassMax_);
 
-  h_yield_Zee     = ibooker_.book1D("h_yield_Zee", "h_yield_Zee", LumiBin_, LumiMin_, LumiMax_);
+  h_ee_yield_Z     = ibooker_.book1D("h_yield_Zee", "h_yield_Zee", LumiBin_, LumiMin_, LumiMax_);
+
+
+  h_ee_cutflow = ibooker_.book1D("h_ee_cutflow", "h_ee_cutflow", 10, -0.5, 9.5 );
 }
 //
 // -------------------------------------- beginLuminosityBlock --------------------------------------------
 //
-void ZCounting::beginLuminosityBlock(edm::LuminosityBlock const& lumiSeg, edm::EventSetup const& context) 
+void ZCounting::beginLuminosityBlock(edm::LuminosityBlock const& lumiSeg, edm::EventSetup const& context)
 {
   edm::LogInfo("ZCounting") <<  "ZCounting::beginLuminosityBlock" << std::endl;
 }
@@ -177,17 +181,17 @@ void ZCounting::beginLuminosityBlock(edm::LuminosityBlock const& lumiSeg, edm::E
 //
 //--------------------------------------------------------------------------------------------------
 void ZCounting::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
-{// Fill event tree on the fly 
+{// Fill event tree on the fly
   edm::LogInfo("ZCounting") <<  "ZCounting::analyze" << std::endl;
   //~ std::cout << "analyze begin." << std::endl;
   bool do_electrons = true;
   if(do_electrons) {
     analyze_electrons(iEvent,iSetup);
-    return;
+    //~ return;
   }
 
   //-------------------------------
-  //--- Vertex 
+  //--- Vertex
   //-------------------------------
   edm::Handle<reco::VertexCollection> hVertexProduct;
   iEvent.getByToken(fPVName_token,hVertexProduct);
@@ -196,7 +200,7 @@ void ZCounting::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   const reco::VertexCollection *pvCol = hVertexProduct.product();
   const reco::Vertex* pv = &(*pvCol->begin());
   int nvtx = 0;
-    
+
   for(reco::VertexCollection::const_iterator itVtx = pvCol->begin(); itVtx!=pvCol->end(); ++itVtx) {
     if(itVtx->isFake())                             continue;
     if(itVtx->tracksSize()     < VtxNTracksFitCut_) continue;
@@ -216,7 +220,7 @@ void ZCounting::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   if(nvtx==0) return;
 
   //-------------------------------
-  //--- Trigger 
+  //--- Trigger
   //-------------------------------
   edm::Handle<edm::TriggerResults> hTrgRes;
   iEvent.getByToken(fHLTTag_token,hTrgRes);
@@ -248,7 +252,7 @@ void ZCounting::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   if(!isMuonTrigger(*fTrigger, triggerBits)) return;
 
   //-------------------------------
-  //--- Muons and Tracks 
+  //--- Muons and Tracks
   //-------------------------------
   edm::Handle<reco::MuonCollection> hMuonProduct;
   iEvent.getByToken(fMuonName_token,hMuonProduct);
@@ -310,7 +314,7 @@ void ZCounting::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
           // category 2HLT: both muons passing trigger requirements
           if(itMu1>itMu2) continue;  // make sure we don't double count MuMu2HLT category
 
-          // Fill twice for each event, since both muons pass trigger 
+          // Fill twice for each event, since both muons pass trigger
           if(isTagCentral){
             h_mass_HLT_pass_central->Fill(iEvent.luminosityBlock(), vDilep.M());
             h_mass_SIT_pass_central->Fill(iEvent.luminosityBlock(), vDilep.M());
@@ -351,11 +355,11 @@ void ZCounting::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
           }
 
         }
-        // category 2HLT + 1HLT: Fill once for Z yield 
+        // category 2HLT + 1HLT: Fill once for Z yield
         h_yield_Z->Fill(iEvent.luminosityBlock());
       }
       else if(itMu2->isGlobalMuon()){
-        // category NoSel: probe is a GLB muon but failing selection 
+        // category NoSel: probe is a GLB muon but failing selection
         if(isProbeCentral){
           h_mass_SIT_fail_central->Fill(iEvent.luminosityBlock(), vDilep.M());
           h_mass_Sta_pass_central->Fill(iEvent.luminosityBlock(), vDilep.M());
@@ -433,13 +437,16 @@ void ZCounting::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 void ZCounting::analyze_electrons(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 {// Fill event tree on the fly
   edm::LogInfo("ZCounting") <<  "ZCounting::analyze_electrons" << std::endl;
+
+  int cutflow = 0;
+  h_ee_cutflow->Fill(cutflow++);h_ee_cutflow->setBinLabel(cutflow,std::string("All"));
   //-------------------------------
   //--- Vertex
   //-------------------------------
   edm::Handle<reco::VertexCollection> hVertexProduct;
   iEvent.getByToken(fPVName_token,hVertexProduct);
   if(!hVertexProduct.isValid()) return;
-
+  
   const reco::VertexCollection *pvCol = hVertexProduct.product();
   //~ const reco::Vertex* pv = &(*pvCol->begin());
   int nvtx = 0;
@@ -451,9 +458,6 @@ void ZCounting::analyze_electrons(const edm::Event& iEvent, const edm::EventSetu
     if(fabs(itVtx->z())        > VtxAbsZCut_)       continue;
     if(itVtx->position().Rho() > VtxRhoCut_)        continue;
 
-    //~ if(nvtx==0) {
-      //~ pv = &(*itVtx);
-    //~ }
     nvtx++;
   }
 
@@ -461,7 +465,8 @@ void ZCounting::analyze_electrons(const edm::Event& iEvent, const edm::EventSetu
 
   // Good vertex requirement
   if(nvtx==0) return;
-
+  h_ee_cutflow->Fill(cutflow++);h_ee_cutflow->setBinLabel(cutflow,std::string("Good vertex"));
+  
   //-------------------------------
   //--- Trigger
   //-------------------------------
@@ -482,7 +487,8 @@ void ZCounting::analyze_electrons(const edm::Event& iEvent, const edm::EventSetu
     initHLT(*hTrgRes, triggerNames);
   }
 
-
+  h_ee_cutflow->Fill(cutflow++);h_ee_cutflow->setBinLabel(cutflow,std::string("Trig info found"));
+  
   TriggerBits triggerBits;
   for(unsigned int irec=0; irec<fTrigger->fRecords.size(); irec++) {
     if(fTrigger->fRecords[irec].hltPathIndex == (unsigned int)-1) continue;
@@ -494,8 +500,8 @@ void ZCounting::analyze_electrons(const edm::Event& iEvent, const edm::EventSetu
   //~ std::cout << "Before trigger." << std::endl;
   // Trigger requirement
   if(!isElectronTrigger(*fTrigger, triggerBits)) return;
-
-
+  h_ee_cutflow->Fill(cutflow++);h_ee_cutflow->setBinLabel(cutflow,std::string("Pass trigger"));
+  //~ std::cout << "After trigger." << h_ee_cutflow->getBinContent(cutflow)<< std::endl;
   // Get Electrons
   edm::Handle<edm::View<reco::GsfElectron> > electrons;
   iEvent.getByToken(fGsfElectronName_token, electrons);
@@ -520,18 +526,20 @@ void ZCounting::analyze_electrons(const edm::Event& iEvent, const edm::EventSetu
   EleID_.setConversions(conversionsHandle);
 
 
-
+  
   TLorentzVector vTag(0.,0.,0.,0.);
   //~ TLorentzVector vProbeSC(0.,0.,0.,0.);
   //~ TLorentzVector vProbeEle(0.,0.,0.,0.);
   TLorentzVector vProbe(0.,0.,0.,0.);
   TLorentzVector vDilep(0.,0.,0.,0.);
-  UInt_t icat = 0;
+  //~ UInt_t icat = 0;
   edm::Ptr<reco::GsfElectron> eleProbe;
   int n_good = 0;
   int n_before_trigger = 0;
   enum { eEleEle2HLT=1, eEleEle1HLT1L1, eEleEle1HLT, eEleEleNoSel, eEleSC };  // event category enum
 
+  int n_tag(0),n_probe(0),n_z(0);
+  
   // Loop over Tags
   for (size_t itag = 0; itag < electrons->size(); ++itag){
     const auto el1 = electrons->ptrAt(itag);
@@ -540,20 +548,25 @@ void ZCounting::analyze_electrons(const edm::Event& iEvent, const edm::EventSetu
     float pt1  = el1->pt();
     float eta1 = el1->eta();
     float phi1 = el1->phi();
-    //~ float q1   = el1->charge();
-
-    // Tag selection: kinematic cuts, lepton selection and trigger matching
-    //~ if(pt1        < PtCutL1_)  continue;
-    //~ if(fabs(eta1) > EtaCutL1_) continue;
-
 
     n_before_trigger++;
     if(!isElectronTriggerObj(*fTrigger, TriggerTools::matchHLT(eta1, phi1, fTrigger->fRecords, *hTrgEvt))) continue;
     n_good++;
     vTag.SetPtEtaPhiM(pt1, eta1, phi1, ELECTRON_MASS);
 
+    // Tag selection: kinematic cuts, lepton selection and trigger matching
+    double tag_pt = vTag.Pt();
+    double tag_abseta = fabs(vTag.Eta());
+    if(tag_pt < ELE_PT_CUT_TAG)  continue;
+    if(tag_abseta > ELE_ETA_CUT_TAG) continue;
+    if( ( tag_abseta > ELE_ETA_CRACK_LOW ) and ( tag_abseta < ELE_ETA_CRACK_HIGH ) ) continue;
+
+    // Good Tag found!
+    n_tag++;
+    
     // Loop over probes
     for (size_t iprobe = 0; iprobe < superclusters->size(); ++iprobe){
+      
       // Initialize probe
       const auto sc = superclusters->ptrAt(iprobe);
       if(*sc == *(el1->superCluster())) {
@@ -563,9 +576,10 @@ void ZCounting::analyze_electrons(const edm::Event& iEvent, const edm::EventSetu
       // Find matching electron
       for (size_t iele = 0; iele < electrons->size(); ++iele){
         if(iele == itag) continue;
-        const auto ele = electrons->ptrAt(itag);
+        const auto ele = electrons->ptrAt(iele);
         if(*sc == *(ele->superCluster())) {
           eleProbe = ele;
+          //~ std::cout << "FOUND" << std::endl;
           break;
         }
       }
@@ -579,33 +593,64 @@ void ZCounting::analyze_electrons(const edm::Event& iEvent, const edm::EventSetu
         vProbe.SetPtEtaPhiM( pt, sc->eta(), sc->phi(), ELECTRON_MASS);
       }
 
+      double probe_pt = vProbe.Pt();
+      double probe_abseta = fabs(vProbe.Eta());
+      if(probe_pt < ELE_PT_CUT_PROBE)  continue;
+      if(probe_abseta > ELE_ETA_CUT_PROBE) continue;
+      if( ( probe_abseta > ELE_ETA_CRACK_LOW ) and ( probe_abseta < ELE_ETA_CRACK_HIGH ) ) continue;
+      // Good Probe found!
+      n_probe++;
+  
       // Require good Z
       vDilep = vTag + vProbe;
-      float MASS_LOW = 100;
-      float MASS_HIGH = 80;
+      float MASS_LOW = 80.0;
+      float MASS_HIGH = 100.0;
       if((vDilep.M()<MASS_LOW) || (vDilep.M()>MASS_HIGH)) continue;
       if(eleProbe.isNonnull() and (eleProbe->charge() != - el1->charge())) continue;
 
+      // Good Z found!
+      n_z++;
+  
       // determine event category
+      long ls = IsData_ ? iEvent.luminosityBlock() : 1;
       if(eleProbe.isNonnull()) {
         if(EleID_.passID(eleProbe)) {
+          h_ee_mass_id_pass->Fill(ls, vDilep.M());          
           if(isElectronTriggerObj(*fTrigger, TriggerTools::matchHLT(vProbe.Eta(), vProbe.Phi(), fTrigger->fRecords, *hTrgEvt))) {
-            icat=eEleEle2HLT;
+            //~ icat=eEleEle2HLT;
+            h_ee_mass_HLT_pass->Fill(ls, vDilep.M());
           }
           else {
-            icat=eEleEle1HLT;
+            //~ icat=eEleEle1HLT;
+            h_ee_mass_HLT_fail->Fill(ls, vDilep.M());
+            h_ee_yield_Z->Fill(ls, vDilep.M());
           }
         }
         else {
-          icat=eEleEleNoSel;
+          //~ icat=eEleEleNoSel;
+          h_ee_mass_id_fail->Fill(ls, vDilep.M());
         }
       }
       else {
-        icat=eEleSC;
+        //~ icat=eEleSC;
+        h_ee_mass_id_fail->Fill(ls, vDilep.M());
       }
     } // End of probe loop
   }//End of tag loop
-  std::cout << "Found " << n_before_trigger<< "/" <<n_good << " good electrons. Category " << icat << std::endl;
+
+  if(n_tag>0){
+    h_ee_cutflow->Fill(cutflow++);
+    h_ee_cutflow->setBinLabel(cutflow,std::string("Tag found"));
+  }
+  if(n_probe>0){
+    h_ee_cutflow->Fill(cutflow++);
+    h_ee_cutflow->setBinLabel(cutflow,std::string("Probe found"));
+  }
+  if(n_z>0){
+    h_ee_cutflow->Fill(cutflow++);
+    h_ee_cutflow->setBinLabel(cutflow,std::string("Z found"));
+  }
+  //~ std::cout << "Found " << n_before_trigger<< "/" <<n_good << " good electrons. Category " << icat << std::endl;
 }
 
 //

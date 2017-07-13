@@ -144,10 +144,21 @@ private:
   double VtxAbsZCut_;
   double VtxRhoCut_;
 
+  bool IsData_;
   const Double_t MUON_MASS  = 0.105658369;
   const Double_t MUON_BOUND = 0.9;
 
   const Double_t ELECTRON_MASS  = 0.000511;
+
+  const Double_t ELE_PT_CUT_TAG = 20;
+  const Double_t ELE_PT_CUT_PROBE = 20;
+  const Double_t ELE_ETA_CUT_TAG = 2.4;
+  const Double_t ELE_ETA_CUT_PROBE = 2.4;
+
+  const Double_t ELE_ETA_CRACK_LOW = 2.4;
+  const Double_t ELE_ETA_CRACK_HIGH = 2.4;
+    
+  
   // Histograms
   MonitorElement* h_mass_HLT_pass_central;
   MonitorElement* h_mass_HLT_pass_forward;
@@ -167,13 +178,15 @@ private:
   MonitorElement* h_npv;
   MonitorElement* h_yield_Z;
 
-  MonitorElement* h_mass_id_pass;
-  MonitorElement* h_mass_id_fail;
+  MonitorElement* h_ee_mass_id_pass;
+  MonitorElement* h_ee_mass_id_fail;
                                  ;
-  MonitorElement* h_mass_HLT_pass;
-  MonitorElement* h_mass_HLT_fail;
+  MonitorElement* h_ee_mass_HLT_pass;
+  MonitorElement* h_ee_mass_HLT_fail;
 
-  MonitorElement* h_yield_Zee;
+  MonitorElement* h_ee_yield_Z;
+
+  MonitorElement* h_ee_cutflow;
 };
 
 
