@@ -169,10 +169,10 @@ bool ElectronIdentifier::passID(const reco::GsfElectronPtr& ele) {
    passes.push_back( !ConversionTools::hasMatchedConversion(*ele,conversions_,beamspot_->position()));
 
    //~ std::cout<< "ID: " << ele->pt();
-   //~ for (auto const p:passes) {
+   for (auto const p:passes) {
       //~ std::cout << " " << p;
-      //~ pass &= p;
-   //~ }
+      pass &= p;
+   }
    //~ std::cout << std::endl;
    return pass;
 }
