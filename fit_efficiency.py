@@ -70,8 +70,9 @@ def do_single_fit(h2d, run, sigpdf=None, bkgpdf=None):
    frame.Draw()
    t=add_text(0.6,0.9,0.7,0.9,["Breit-Wigner","Mean = ({0:.3f} #pm {1:.3f}) GeV".format(mean.getValV(),mean.getError()),"Width = ({0:.3f} #pm {1:.3f}) GeV".format(sigma.getValV(),sigma.getError())])
    c1.SaveAs('run{RUN}.pdf'.format(RUN=run))
+
    
-   #~ return (1-bkgfrac.getValV()) * 
+   return (1-bkgfrac.getValV()) * dh.sumEntries()
 #~ path_to_file = "/disk1/albert/zcounting/dqmoffline/CMSSW_9_0_0/src/DQMOffline/LumiZCounting/DQM_V0001_R000281616__SingleMuon__Run2016H-PromptReco-v2__RECO.root"
 
 path_to_file = sys.argv[1]
@@ -90,5 +91,10 @@ runs = [ int(x.GetTitle().replace("Run ","")) for x in list(f.Get("DQMData").Get
 base = "DQMData/Run {RUN}/ZCounting/Run summary/Histograms/"
 print runs
 for run in runs:
-   #~ do_single_fit(f.Get(base.format(RUN=run)+"h_ee_mass_HLT_fail"),run)
-   do_single_fit(f.Get(base.format(RUN=run)+"h_ee_mass_id_fail"),run)
+   n_fail = do_single_fit(f.Get(base.format(RUN=run)+"h_ee_mass_HLT_fail"),run)
+   n_pass = do_single_fit(f.Get(base.format(RUN=run)+"h_ee_mass_HLT_pass"),run)
+   print 'HLT Pass / Fail / Eff: ', n_pass, n_fail, n_pass/(n_pass + n_fail)
+
+   n_fail = do_single_fit(f.Get(base.format(RUN=run)+"h_ee_mass_id_fail"),run)
+   n_pass = do_single_fit(f.Get(base.format(RUN=run)+"h_ee_mass_id_pass"),run)
+   print 'ID Pass / Fail / Eff: ', n_pass, n_fail, n_pass/(n_pass + n_fail)
