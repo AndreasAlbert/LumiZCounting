@@ -707,6 +707,7 @@ bool ZCounting::isElectronTrigger(baconhep::TTrigger triggerMenu, TriggerBits hl
   //~ for(auto const & record : triggerMenu.fRecords) {
     //~ std::cout << record.hltPattern<< " " << triggerMenu.pass(record.hltPattern,hltBits) << std::endl;
   //~ }
+  //~ return triggerMenu.pass("HLT_Ele27_eta2p1_WPTight_Gsf_v*",hltBits);
   return triggerMenu.pass("HLT_Ele27_WPTight_Gsf_v*",hltBits);
 }
 
@@ -718,6 +719,7 @@ bool ZCounting::isMuonTriggerObj(baconhep::TTrigger triggerMenu, TriggerObjects 
 //--------------------------------------------------------------------------------------------------
 bool ZCounting::isElectronTriggerObj(baconhep::TTrigger triggerMenu, TriggerObjects hltMatchBits)
 {
+  //~ return triggerMenu.passObj("HLT_Ele27_eta2p1_WPTight_Gsf_v*","hltEle27erWPTightGsfTrackIsoFilter",hltMatchBits);
   return triggerMenu.passObj("HLT_Ele27_WPTight_Gsf_v*","hltEle27WPTightGsfTrackIsoFilter",hltMatchBits);
 }
 //--------------------------------------------------------------------------------------------------
