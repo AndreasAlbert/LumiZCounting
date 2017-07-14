@@ -612,25 +612,39 @@ void ZCounting::analyze_electrons(const edm::Event& iEvent, const edm::EventSetu
       n_z++;
   
       // determine event category
+      //~ long ls = IsData_ ? iEvent.luminosityBlock() : 1;
+      //~ if(eleProbe.isNonnull()) {
+        //~ if(EleID_.passID(eleProbe)) {
+          //~ h_ee_mass_id_pass->Fill(ls, vDilep.M());          
+          //~ if(isElectronTriggerObj(*fTrigger, TriggerTools::matchHLT(vProbe.Eta(), vProbe.Phi(), fTrigger->fRecords, *hTrgEvt))) {
+            //~ h_ee_mass_HLT_pass->Fill(ls, vDilep.M());
+          //~ }
+          //~ else {
+            //~ h_ee_mass_HLT_fail->Fill(ls, vDilep.M());
+            //~ h_ee_yield_Z->Fill(ls, vDilep.M());
+          //~ }
+        //~ }
+        //~ else {
+          //~ h_ee_mass_id_fail->Fill(ls, vDilep.M());
+        //~ }
+      //~ }
+      //~ else {
+        //~ h_ee_mass_id_fail->Fill(ls, vDilep.M());
+      //~ }
+
       long ls = IsData_ ? iEvent.luminosityBlock() : 1;
-      if(eleProbe.isNonnull()) {
-        if(EleID_.passID(eleProbe)) {
-          h_ee_mass_id_pass->Fill(ls, vDilep.M());          
-          if(isElectronTriggerObj(*fTrigger, TriggerTools::matchHLT(vProbe.Eta(), vProbe.Phi(), fTrigger->fRecords, *hTrgEvt))) {
+
+      if(isElectronTriggerObj(*fTrigger, TriggerTools::matchHLT(vProbe.Eta(), vProbe.Phi(), fTrigger->fRecords, *hTrgEvt))) {
             h_ee_mass_HLT_pass->Fill(ls, vDilep.M());
-          }
-          else {
+            if(eleProbe.isNonnull() and EleID_.passID(eleProbe)) {
+              h_ee_mass_id_pass->Fill(ls, vDilep.M());
+            } else {
+              h_ee_mass_id_fail->Fill(ls, vDilep.M());
+            }
+      } else {
             h_ee_mass_HLT_fail->Fill(ls, vDilep.M());
-            h_ee_yield_Z->Fill(ls, vDilep.M());
-          }
-        }
-        else {
-          h_ee_mass_id_fail->Fill(ls, vDilep.M());
-        }
       }
-      else {
-        h_ee_mass_id_fail->Fill(ls, vDilep.M());
-      }
+
     } // End of probe loop
   }//End of tag loop
 
