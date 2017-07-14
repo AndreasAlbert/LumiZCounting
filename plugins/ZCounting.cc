@@ -617,22 +617,18 @@ void ZCounting::analyze_electrons(const edm::Event& iEvent, const edm::EventSetu
         if(EleID_.passID(eleProbe)) {
           h_ee_mass_id_pass->Fill(ls, vDilep.M());          
           if(isElectronTriggerObj(*fTrigger, TriggerTools::matchHLT(vProbe.Eta(), vProbe.Phi(), fTrigger->fRecords, *hTrgEvt))) {
-            //~ icat=eEleEle2HLT;
             h_ee_mass_HLT_pass->Fill(ls, vDilep.M());
           }
           else {
-            //~ icat=eEleEle1HLT;
             h_ee_mass_HLT_fail->Fill(ls, vDilep.M());
             h_ee_yield_Z->Fill(ls, vDilep.M());
           }
         }
         else {
-          //~ icat=eEleEleNoSel;
           h_ee_mass_id_fail->Fill(ls, vDilep.M());
         }
       }
       else {
-        //~ icat=eEleSC;
         h_ee_mass_id_fail->Fill(ls, vDilep.M());
       }
     } // End of probe loop
