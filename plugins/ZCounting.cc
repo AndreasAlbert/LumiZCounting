@@ -11,7 +11,6 @@
 #include "DataFormats/EgammaCandidates/interface/Electron.h"
 #include "DataFormats/EgammaCandidates/interface/GsfElectron.h"
 #include "DataFormats/EgammaReco/interface/SuperCluster.h"
-#include "RecoEgamma/ElectronIdentification/plugins/cuts/GsfEleMissingHitsCut.cc"
 
 #include "DQMOffline/LumiZCounting/interface/MiniBaconDefs.h"
 #include "DQMOffline/LumiZCounting/interface/TTrigger.h"

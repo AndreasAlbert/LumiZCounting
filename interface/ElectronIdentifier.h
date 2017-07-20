@@ -18,11 +18,8 @@
 #include "DataFormats/EgammaCandidates/interface/GsfElectron.h"
 #include "DataFormats/EgammaCandidates/interface/ConversionFwd.h"
 #include "DataFormats/EgammaCandidates/interface/Conversion.h"
-#include "DataFormats/EgammaCandidates/interface/GsfElectron.h"
 
 #include "PhysicsTools/SelectorUtils/interface/CutApplicatorBase.h"
-
-#include "RecoEgamma/ElectronIdentification/plugins/cuts/GsfEleEffAreaPFIsoCut.cc"
 
 #include "RecoEgamma/EgammaTools/interface/EffectiveAreas.h"
 #include <DataFormats/BeamSpot/interface/BeamSpot.h>
