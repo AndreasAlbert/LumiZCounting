@@ -32,6 +32,10 @@
 #include "DQMOffline/LumiZCounting/interface/TriggerTools.h"
 #include "DQMOffline/LumiZCounting/interface/ElectronIdentifier.h"
 
+#include "FWCore/ServiceRegistry/interface/Service.h"
+#include "CommonTools/UtilAlgos/interface/TFileService.h"
+
+
 class TFile;
 class TH1D;
 class TTree;
@@ -187,6 +191,16 @@ private:
   MonitorElement* h_ee_yield_Z;
 
   MonitorElement* h_ee_cutflow;
+  
+  TH2D * h_ee_mass_id_pass_debug;
+  TH2D * h_ee_mass_id_fail_debug;
+  TH2D * h_ee_mass_HLT_pass_debug;
+  TH2D * h_ee_mass_HLT_fail_debug;
+
+  TH1D * h_ee_yield_Z_debug;
+
+
+  edm::Service<TFileService> fileservice;
 };
 
 

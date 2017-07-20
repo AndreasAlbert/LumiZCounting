@@ -88,8 +88,16 @@ ZCounting::ZCounting(const edm::ParameterSet& iConfig):
   VtxRhoCut_        = iConfig.getUntrackedParameter<double>("VtxRhoMax");
 
   IsData_ = iConfig.getUntrackedParameter<bool>("IsData");
-
   //~ GsfCutMissingHits = GsfEleMissingHitsCut(iConfig);
+
+  
+  h_ee_mass_id_pass_debug = fileservice->make<TH2D>("h_ee_mass_id_pass_debug", "h_ee_mass_id_pass_debug", LumiBin_, LumiMin_, LumiMax_, MassBin_, MassMin_, MassMax_);
+  h_ee_mass_id_fail_debug = fileservice->make<TH2D>("h_ee_mass_id_fail_debug", "h_ee_mass_id_fail_debug", LumiBin_, LumiMin_, LumiMax_, MassBin_, MassMin_, MassMax_);
+  h_ee_mass_HLT_pass_debug = fileservice->make<TH2D>("h_ee_mass_HLT_pass_debug", "h_ee_mass_HLT_pass_debug", LumiBin_, LumiMin_, LumiMax_, MassBin_, MassMin_, MassMax_);
+  h_ee_mass_HLT_fail_debug = fileservice->make<TH2D>("h_ee_mass_HLT_fail_debug", "h_ee_mass_HLT_fail_debug", LumiBin_, LumiMin_, LumiMax_, MassBin_, MassMin_, MassMax_);
+
+  h_ee_yield_Z_debug     = fileservice->make<TH1D>("h_ee_yield_Z_debug", "h_ee_yield_Z_debug", LumiBin_, LumiMin_, LumiMax_);
+
 }
 
 //
@@ -111,6 +119,8 @@ void ZCounting::dqmBeginRun(edm::Run const &, edm::EventSetup const &)
 
   // Triggers
   setTriggers();
+
+
 }
 //
 // -------------------------------------- bookHistos --------------------------------------------
@@ -609,41 +619,30 @@ void ZCounting::analyze_electrons(const edm::Event& iEvent, const edm::EventSetu
 
       // Good Z found!
       n_z++;
-  
-      // determine event category
-      //~ long ls = IsData_ ? iEvent.luminosityBlock() : 1;
-      //~ if(eleProbe.isNonnull()) {
-        //~ if(EleID_.passID(eleProbe)) {
-          //~ h_ee_mass_id_pass->Fill(ls, vDilep.M());          
-          //~ if(isElectronTriggerObj(*fTrigger, TriggerTools::matchHLT(vProbe.Eta(), vProbe.Phi(), fTrigger->fRecords, *hTrgEvt))) {
-            //~ h_ee_mass_HLT_pass->Fill(ls, vDilep.M());
-          //~ }
-          //~ else {
-            //~ h_ee_mass_HLT_fail->Fill(ls, vDilep.M());
-            //~ h_ee_yield_Z->Fill(ls, vDilep.M());
-          //~ }
-        //~ }
-        //~ else {
-          //~ h_ee_mass_id_fail->Fill(ls, vDilep.M());
-        //~ }
-      //~ }
-      //~ else {
-        //~ h_ee_mass_id_fail->Fill(ls, vDilep.M());
-      //~ }
 
       long ls = IsData_ ? iEvent.luminosityBlock() : 1;
+      bool probe_pass_trigger = isElectronTriggerObj(*fTrigger, TriggerTools::matchHLT(vProbe.Eta(), vProbe.Phi(), fTrigger->fRecords, *hTrgEvt));
+      bool probe_pass_id = eleProbe.isNonnull() and EleID_.passID(eleProbe);
 
-      if(isElectronTriggerObj(*fTrigger, TriggerTools::matchHLT(vProbe.Eta(), vProbe.Phi(), fTrigger->fRecords, *hTrgEvt))) {
-            h_ee_mass_HLT_pass->Fill(ls, vDilep.M());
-            if(eleProbe.isNonnull() and EleID_.passID(eleProbe)) {
-              h_ee_mass_id_pass->Fill(ls, vDilep.M());
-            } else {
-              h_ee_mass_id_fail->Fill(ls, vDilep.M());
-            }
+      /// Fill for ID efficiency and yields
+      if(probe_pass_id) {
+        h_ee_mass_id_pass->Fill(ls, vDilep.M());
+        h_ee_mass_id_pass_debug->Fill(ls, vDilep.M());
+
+        h_ee_yield_Z_debug->Fill(ls);
       } else {
-            h_ee_mass_HLT_fail->Fill(ls, vDilep.M());
+        h_ee_mass_id_fail->Fill(ls, vDilep.M());
+        h_ee_mass_id_fail_debug->Fill(ls, vDilep.M());
       }
 
+      /// Fill for HLT efficiency
+      if(probe_pass_id and probe_pass_trigger) {
+        h_ee_mass_HLT_pass->Fill(ls, vDilep.M());
+        h_ee_mass_HLT_pass_debug->Fill(ls, vDilep.M());
+      } else if (probe_pass_id) {
+        h_ee_mass_HLT_fail->Fill(ls, vDilep.M());
+        h_ee_mass_HLT_fail_debug->Fill(ls, vDilep.M());
+      }
     } // End of probe loop
   }//End of tag loop
 

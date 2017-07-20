@@ -55,6 +55,8 @@ process.options = cms.untracked.PSet(
   Rethrow     = cms.untracked.vstring('ProductNotFound'),
   fileMode    = cms.untracked.string('NOMERGE')
   )
+
+process.TFileService = cms.Service("TFileService", fileName = cms.string("histo.root") )
 #~ 
 #~ ### VID BEGIN
 #~ from PhysicsTools.SelectorUtils.tools.vid_id_tools import *
