@@ -595,18 +595,19 @@ void ZCounting::analyze_electrons(const edm::Event& iEvent, const edm::EventSetu
 
       // Assign final probe 4-vector
       if(eleProbe.isNonnull()){
-        //TODO: SELECTION
         vProbe.SetPtEtaPhiM( eleProbe->pt(), eleProbe->eta(), eleProbe->phi(), ELECTRON_MASS);
       } else {
         double pt = sc->energy() * TMath::Sqrt( 1 - pow(TMath::TanH(sc->eta()),2) );
         vProbe.SetPtEtaPhiM( pt, sc->eta(), sc->phi(), ELECTRON_MASS);
       }
 
+      // Probe Selection
       double probe_pt = vProbe.Pt();
       double probe_abseta = fabs(sc->eta());
       if(probe_pt < ELE_PT_CUT_PROBE)  continue;
       if(probe_abseta > ELE_ETA_CUT_PROBE) continue;
       if( ( probe_abseta > ELE_ETA_CRACK_LOW ) and ( probe_abseta < ELE_ETA_CRACK_HIGH ) ) continue;
+
       // Good Probe found!
       n_probe++;
   
