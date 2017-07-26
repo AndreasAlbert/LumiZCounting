@@ -39,7 +39,9 @@ class ElectronIdentifier{
    private:
      //~ edm::InputTag fRhoTag;
      //~ edm::EDGetTokenT<bool> fRhoToken;
+     std::string _workingPoint;
      double rho_;
+
      edm::Handle<reco::BeamSpot> beamspot_;
      edm::Handle<reco::ConversionCollection> conversions_;
      std::map<std::string,std::map<std::string,std::map<std::string, double>>> cuts_;

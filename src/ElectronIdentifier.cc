@@ -28,8 +28,8 @@
 
 
 ElectronIdentifier::ElectronIdentifier (const edm::ParameterSet& c) :
+   _workingPoint(c.getUntrackedParameter<std::string>("eleIDWP")),
    _effectiveAreas( (c.getParameter<edm::FileInPath>("effAreasConfigFile")).fullPath())
-
 {
       rho_ = -1;
 
@@ -154,18 +154,16 @@ float ElectronIdentifier::isolation(const reco::GsfElectronPtr& ele) {
 bool ElectronIdentifier::passID(const reco::GsfElectronPtr& ele) {
 
    std::string region = fabs(ele->superCluster()->eta()) < 1.479 ? "BARREL" : "ENDCAP";
-   std::string ID = "TIGHT";
-
    bool pass = true;
 
    std::vector<bool> passes;
-   passes.push_back( ele->full5x5_sigmaIetaIeta()                     < cuts_["SIGMAIETA"][ID][region]);
-   passes.push_back( dEtaInSeed(ele)                                  < cuts_["DETAINSEED"][ID][region]);
-   passes.push_back( std::abs(ele->deltaPhiSuperClusterTrackAtVtx())  < cuts_["DPHIIN"][ID][region]);
-   passes.push_back( ele->hadronicOverEm()                            < cuts_["HOVERE"][ID][region]);
-   passes.push_back( isolation(ele)                                   < cuts_["ISO"][ID][region]);
-   passes.push_back( std::abs(1.0 - ele->eSuperClusterOverP())/ele->ecalEnergy()  < cuts_["1OVERE"][ID][region]);
-   passes.push_back( (ele->gsfTrack()->hitPattern().numberOfHits(reco::HitPattern::MISSING_INNER_HITS)) <= cuts_["MISSINGHITS"][ID][region]);
+   passes.push_back( ele->full5x5_sigmaIetaIeta()                     < cuts_["SIGMAIETA"][_workingPoint][region]);
+   passes.push_back( dEtaInSeed(ele)                                  < cuts_["DETAINSEED"][_workingPoint][region]);
+   passes.push_back( std::abs(ele->deltaPhiSuperClusterTrackAtVtx())  < cuts_["DPHIIN"][_workingPoint][region]);
+   passes.push_back( ele->hadronicOverEm()                            < cuts_["HOVERE"][_workingPoint][region]);
+   passes.push_back( isolation(ele)                                   < cuts_["ISO"][_workingPoint][region]);
+   passes.push_back( std::abs(1.0 - ele->eSuperClusterOverP())/ele->ecalEnergy()  < cuts_["1OVERE"][_workingPoint][region]);
+   passes.push_back( (ele->gsfTrack()->hitPattern().numberOfHits(reco::HitPattern::MISSING_INNER_HITS)) <= cuts_["MISSINGHITS"][_workingPoint][region]);
    passes.push_back( !ConversionTools::hasMatchedConversion(*ele,conversions_,beamspot_->position()));
 
    //~ std::cout<< "ID: " << ele->pt();

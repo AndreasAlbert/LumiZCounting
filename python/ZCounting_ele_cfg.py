@@ -93,6 +93,8 @@ process.zcounting = cms.EDAnalyzer('ZCounting',
                                   #~ eleIdMap = cms.InputTag("egmGsfElectronIDs:cutBasedElectronHLTPreselection-Summer16-V1"),
   
                                   effAreasConfigFile = cms.FileInPath("RecoEgamma/ElectronIdentification/data/Summer16/effAreaElectrons_cone03_pfNeuHadronsAndPhotons_80X.txt"),
+
+                                  eleIDWP = cms.untracked.string("TIGHT"),
   
                                   rhoname = cms.InputTag('fixedGridRhoFastjetAll'),
                                   beamspotName = cms.InputTag('offlineBeamSpot'),
